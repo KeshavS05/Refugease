@@ -1,0 +1,143 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<title>Map</title>
+<meta name="viewport" content="initial-scale=1,maximum-scale=1,user-scalable=no">
+<link href="https://api.mapbox.com/mapbox-gl-js/v2.13.0/mapbox-gl.css" rel="stylesheet">
+<script src="https://api.mapbox.com/mapbox-gl-js/v2.13.0/mapbox-gl.js"></script>
+<style>
+body { margin: 0; padding: 0; }
+#map { position: absolute; top: 0; bottom: 0; width: 100%; }
+.mapboxgl-popup {
+  max-width: 200px;
+}
+
+.marker {
+  background-image: url('mapbox-icon.png');
+  background-size: cover;
+  width: 50px;
+  height: 50px;
+  border-radius: 50%;
+  cursor: pointer;
+}
+
+
+.mapboxgl-popup-content {
+  text-align: center;
+  font-family: 'Open Sans', sans-serif;
+}
+</style>
+<body>
+<div id="map"></div>
+<script>
+  mapboxgl.accessToken = 'pk.eyJ1IjoiYWxpbmFjMjYiLCJhIjoiY2xlcno0eWcyMHZmNzN6cTYzNW93bGFleCJ9.15bgnnyb7PWEJ2jqK8HMlA';
+    const map = new mapboxgl.Map({
+        container: 'map',
+        // Choose from Mapbox's core styles, or make your own style with Mapbox Studio
+        style: 'mapbox://styles/mapbox/streets-v12',
+        center: [<%=long%>, <%=lat%>],
+        zoom: 6
+    });
+    
+    map.on('load', () => {
+        // Add an image to use as a custom marker
+        map.loadImage(
+            'https://docs.mapbox.com/mapbox-gl-js/assets/custom_marker.png',
+            (error, image) => {
+                if (error) throw error;
+                map.addImage('custom-marker', image);
+                
+                
+                console.log(<%=out.len%>)
+                console.log([<% for(let i = 0; i < out.length-1;i++){ %>{'type': 'Feature',
+                                        'geometry': {
+                                        'type': 'Point',
+                                        'coordinates': [
+                                            <%- out[i].geometry.coordinates.long %>, <%- out[i].geometry.coordinates.lat %>
+                                        ]
+                                    },
+                                    'properties': {
+                                        'title': "<%- out[i].geometry.coordinates.name %>"
+                                    }
+                                    },
+                                    <% } %>])
+                // Add a GeoJSON source with 2 points
+                map.addSource('points', {
+                    'type': 'geojson',
+                    'data': {
+                        'type': 'FeatureCollection',
+                        'features': [<% for(let i = 0; i < out.length-1;i++){ %>{'type': 'Feature',
+                                        'geometry': {
+                                        'type': 'Point',
+                                        'coordinates': [
+                                            <%- out[i].geometry.coordinates.lat %>, <%- out[i].geometry.coordinates.long %>
+                                        ]
+                                    },
+                                    'properties': {
+                                        'title': "<%- out[i].geometry.coordinates.name %>"
+                                    }
+                                    },
+                                    <% } %>]
+                    }
+                });
+
+                // Add a symbol layer
+                map.addLayer({
+                    'id': 'points',
+                    'type': 'symbol',
+                    'source': 'points',
+                    'layout': {
+                        'icon-allow-overlap':true,
+                        // get the title name from the source's "title" property
+                        'text-field': ['get', 'title'],
+                        'text-font': [
+                            'Open Sans Semibold',
+                            'Arial Unicode MS Bold'
+                        ],
+                        'text-offset': [0, 1.25],
+                        'text-anchor': 'top'
+                    }
+                });
+            }
+        );
+    });
+    
+    console.log("ran")
+    var gjson = {features : [<% for(let i = 0; i < out.length-1;i++){ %>{'type': 'Feature',
+                                        'geometry': {
+                                        'type': 'Point',
+                                        'coordinates': [
+                                            <%- out[i].geometry.coordinates.long %>, <%- out[i].geometry.coordinates.lat %>
+                                        ]
+                                    },
+                                    'properties': {
+                                        'title': "<%- out[i].geometry.coordinates.name %>",
+                                        'address': "<%- out[i].geometry.coordinates.link %>",
+                                        'phone': "<%- out[i].geometry.coordinates.num %>"
+                                    }
+                                    },
+                                    <% } %>]}
+    
+    for (const feature of gjson.features) {
+        // create a HTML element for each feature
+        const el = document.createElement('div');
+        el.className = 'marker';
+        // make a marker for each feature and add it to the map
+        const marker = new mapboxgl.Marker()
+        .setLngLat([feature.geometry.coordinates[1], feature.geometry.coordinates[0]])
+        .setPopup(
+        new mapboxgl.Popup({ offset: 25 }) // add popups
+        .setHTML(
+        `<h3>${feature.properties.title}</h3>
+        <p>${feature.properties.address}</p>
+        <p>${feature.properties.phone}</p>`
+        )
+        )
+        .addTo(map);
+    }
+    
+</script>
+
+</body>
+</html>
